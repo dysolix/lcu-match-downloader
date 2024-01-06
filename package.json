@@ -1,0 +1,20 @@
+{
+  "name": "automatic-match-download",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@hasagi/core": "^0.4.3"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "tsx": "^4.7.0"
+  }
+}
