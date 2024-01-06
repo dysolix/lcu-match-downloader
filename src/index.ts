@@ -68,7 +68,13 @@ client.addLCUEventListener({
             }
 
             // Periodically check if the download is complete
-            const replayFile = await retry(() => replayDirectory.find(dirent => dirent.isFile() && dirent.name.endsWith(data.gameId + ".rofl")), { initialDelay: 5000, retryDelay: 5000, retries: 4 });
+            const replayFile = await retry(() => {
+                const file = replayDirectory.find(dirent => dirent.isFile() && dirent.name.endsWith(data.gameId + ".rofl"));
+                if (file)
+                    return file;
+
+                throw new Error("Replay file not found.");
+            }, { initialDelay: 5000, retryDelay: 5000, retries: 4 });
             if (!replayFile) {
                 console.log(`Failed to find replay file for game ${data.gameId}.`);
                 return;
