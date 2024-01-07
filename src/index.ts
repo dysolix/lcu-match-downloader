@@ -25,9 +25,6 @@ async function retry<T>(fn: () => T | Promise<T>, options?: { retries?: number, 
     }
 }
 
-const REPLAY_DIRECTORY = path.join(homedir(), "./Documents/League of Legends/Replays");
-console.log(`Expecting replay directory to be at '${REPLAY_DIRECTORY}'.`);
-
 const client = new HasagiClient();
 let lastGameId = -1;
 
@@ -44,6 +41,8 @@ client.on("disconnected", () => {
 });
 
 await client.connect();
+const REPLAY_DIRECTORY = await client.request("get", "/lol-replays/v1/rofls/path");
+console.log(`Replay directory is ${REPLAY_DIRECTORY}.`);
 
 client.addLCUEventListener({
     name: "OnJsonApiEvent_lol-end-of-game_v1_eog-stats-block",
@@ -61,26 +60,32 @@ client.addLCUEventListener({
                 });
             }, { initialDelay: 5000, retryDelay: 10000, retries: 2, onError: (willRetry, e) => console.log(`Failed to download replay (${e}).${willRetry ? " Retrying..." : ""}`), onSuccess: () => console.log("Downloading replay...") });
 
-            const replayDirectory = await fs.readdir(REPLAY_DIRECTORY, { withFileTypes: true }).catch(() => null);
-            if (!replayDirectory) {
-                console.log(`Failed to find replay directory at ${REPLAY_DIRECTORY}.`);
-                return;
-            }
+            // Wait for download to finish
+            const replayFile = await retry(async () => {
+                const metadata = await client.request("get", "/lol-replays/v1/metadata/{gameId}", { path: { gameId: data.gameId as any } });
+                if (metadata.state === "downloading")
+                    throw new Error("Replay is still downloading...");
 
-            // Periodically check if the download is complete
-            const replayFile = await retry(() => {
+                if (metadata.state !== "watch")
+                    throw new Error(`Replay is in an unexpected state. (${metadata.state})`);
+
+                const replayDirectory = await fs.readdir(REPLAY_DIRECTORY, { withFileTypes: true }).catch(() => null);
+                if (!replayDirectory) {
+                    throw new Error(`Couldn't access replay directory at ${REPLAY_DIRECTORY}.`);
+                }
+
                 const file = replayDirectory.find(dirent => dirent.isFile() && dirent.name.endsWith(data.gameId + ".rofl"));
                 if (file)
                     return file;
 
-                throw new Error("Replay file not found.");
-            }, { initialDelay: 5000, retryDelay: 5000, retries: 4 });
+                throw new Error("Couldn't find replay file.");
+            }, { initialDelay: 5000, retryDelay: 5000, retries: 4 }).catch(() => null);
             if (!replayFile) {
-                console.log(`Failed to find replay file for game ${data.gameId}.`);
+                console.log(`Failed to download replay for game ${data.gameId}.`);
                 return;
             }
 
-            console.log(`Found replay file '${replayFile.name}'.`);
+            console.log(`Downloaded replay file '${replayFile.name}'.`);
         }
     },
 })
