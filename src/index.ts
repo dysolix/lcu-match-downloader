@@ -1,7 +1,5 @@
-import { HasagiClient, LCUTypes } from "@hasagi/core";
+import { HasagiClient, LCUEndpointResponseType } from "@hasagi/core";
 import fs from "fs/promises";
-import path from "path";
-import { homedir } from "os";
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 async function retry<T>(fn: () => T | Promise<T>, options?: { retries?: number, retryDelay?: number, initialDelay?: number, onSuccess?: (res: T) => void, onError?: (willRetry: boolean, err?: any) => void }): Promise<T> {
@@ -46,9 +44,10 @@ console.log(`Replay directory is ${REPLAY_DIRECTORY}.`);
 
 client.addLCUEventListener({
     name: "OnJsonApiEvent_lol-end-of-game_v1_eog-stats-block",
+    path: "/lol-end-of-game/v1/eog-stats-block",
     types: ["Create", "Update"],
     async callback(event) {
-        const data = event.data as LCUTypes.LolEndOfGameEndOfGameStats;
+        const data = event.data as LCUEndpointResponseType<"get", "/lol-end-of-game/v1/eog-stats-block">;
         if (data.gameId && lastGameId !== data.gameId) {
             console.log(`Found completed game with id ${data.gameId}. Trying to download replay...`);
             lastGameId = data.gameId;

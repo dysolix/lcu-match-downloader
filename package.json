@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@hasagi/core": "^0.4.3"
+    "@hasagi/core": "^0.5.3"
   },
   "type": "module",
   "devDependencies": {
